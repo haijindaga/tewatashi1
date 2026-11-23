@@ -34,7 +34,10 @@ from yasmin_ros import set_ros_loggers
 from yasmin_viewer import YasminViewerPub
 
 from tewatashi_task.motion import Motion
-from tewatashi_task.states import ABORTED, CANCELED, NO_CAMERA, SUCCEEDED, CaptureImage, MoveToPose
+from tewatashi_interfaces.srv import Segment
+from tewatashi_task.states import (
+    ABORTED, CANCELED, NO_CAMERA, NOT_FOUND, SUCCEEDED, CaptureImage, MoveToPose, SegmentObject,
+)
 
 DONE = "done"
 FAILED = "failed"
@@ -58,6 +61,25 @@ class TaskContext:
 
     def set_latest_image(self, msg):
         self._owner.latest_image = msg
+
+    def latest_image(self):
+        return self._owner.latest_image
+
+    def set_latest_mask(self, mask, score):
+        self._owner.latest_mask = mask
+        self._owner.latest_mask_score = score
+
+    def target_object(self):
+        # Read at every run, so `ros2 param set /tewatashi_task target_object ...`
+        # takes effect without a restart.
+        return self._owner.get_parameter("target_object").value
+
+    def segment_client(self):
+        return self._owner.segment_client
+
+    @staticmethod
+    def segment_request(image, prompt):
+        return Segment.Request(image=image, prompt=prompt)
 
     def wait_for_approval(self, state, text):
         """Block until the operator approves. False if the state was canceled."""
@@ -90,6 +112,7 @@ class TaskNode(Node):
         self.declare_parameter("require_approval", True)
         self.declare_parameter("home_on_startup", True)
         self.declare_parameter("image_topic", "/camera/camera/color/image_raw")
+        self.declare_parameter("target_object", "hammer")
         self.declare_parameter("pose_names", ["home", "observe"])
         self.declare_parameter("pose.home", [0.0, -1.5707, 0.0, -1.5707, 0.0, 0.0])
         self.declare_parameter("pose.observe", [0.0, -1.9, 1.6, -1.27, -1.57, 0.0])
@@ -107,6 +130,11 @@ class TaskNode(Node):
             self, self.motion_group, p("velocity_scaling").value, p("acceleration_scaling").value
         )
         self.latest_image = None
+        self.latest_mask = None
+        self.latest_mask_score = 0.0
+        self.segment_client = self.create_client(
+            Segment, "/sam3_server/segment", callback_group=self.motion_group
+        )
 
         self._lock = threading.Lock()
         self._log = collections.deque(maxlen=30)
@@ -157,11 +185,16 @@ class TaskNode(Node):
             "GO_OBSERVE", MoveToPose(self.ctx, "observe"),
             transitions={SUCCEEDED: "CAPTURE", ABORTED: FAILED, CANCELED: CANCELED},
         )
-        # Perception, decision (carry directly / place and regrasp) and
-        # handover states will be inserted here.
         sm.add_state(
             "CAPTURE", CaptureImage(self.ctx, image_topic),
-            transitions={SUCCEEDED: "RETURN_HOME", NO_CAMERA: "RETURN_HOME", CANCELED: CANCELED},
+            transitions={SUCCEEDED: "SEGMENT", NO_CAMERA: "RETURN_HOME", CANCELED: CANCELED},
+        )
+        # Part estimation, grasp candidates, decision (carry directly / place
+        # and regrasp) and handover states will be inserted after SEGMENT.
+        sm.add_state(
+            "SEGMENT", SegmentObject(self.ctx),
+            transitions={SUCCEEDED: "RETURN_HOME", NOT_FOUND: "RETURN_HOME",
+                         ABORTED: "RETURN_HOME", CANCELED: CANCELED},
         )
         sm.add_state(
             "RETURN_HOME", MoveToPose(self.ctx, "home"),

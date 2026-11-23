@@ -1,0 +1,10 @@
+sam3_server:
+  ros__parameters:
+    model_id: facebook/sam3
+    device: cuda
+    # float32 measured at 4.0 GB peak on one image. bfloat16 roughly halves it
+    # (not yet compared for accuracy).
+    dtype: float32
+    preload: false          # load at the first request (keeps GPU free until needed)
+    score_threshold: 0.5
+    mask_threshold: 0.5

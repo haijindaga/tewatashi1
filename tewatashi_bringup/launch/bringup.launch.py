@@ -6,7 +6,8 @@
 
 Started:
   driver (ur_robot_driver via tewatashi_control), move_group, RViz,
-  task node (YASMIN), yasmin_viewer, rosbridge, and a static web server for
+  task node (YASMIN), SAM3 server (perception venv), yasmin_viewer,
+  rosbridge, and a static web server for
   the operator panel at http://127.0.0.1:8080 .
 All network services listen on 127.0.0.1 only.
 """
@@ -18,7 +19,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -27,6 +28,7 @@ def generate_launch_description():
     control = get_package_share_directory("tewatashi_control")
     moveit = get_package_share_directory("tewatashi_moveit_config")
     task = get_package_share_directory("tewatashi_task")
+    perception = get_package_share_directory("tewatashi_perception")
 
     use_fake = LaunchConfiguration("use_fake_hardware")
     panel_port = LaunchConfiguration("panel_port")
@@ -41,6 +43,14 @@ def generate_launch_description():
             description="Calibration extracted with ur_calibration (real robot)"),
         DeclareLaunchArgument("panel_port", default_value="8080"),
         DeclareLaunchArgument("open_browser", default_value="true"),
+        DeclareLaunchArgument("use_perception", default_value="true",
+                              description="start the perception nodes (needs the venv)"),
+        DeclareLaunchArgument(
+            "perception_python",
+            default_value=PathJoinSubstitution([
+                EnvironmentVariable("HOME"),
+                "projects/handover_ws/venv_perception/bin/python"]),
+            description="Python of the perception venv (torch, transformers)"),
     ]
 
     driver = IncludeLaunchDescription(
@@ -67,6 +77,17 @@ def generate_launch_description():
             {"use_fake_hardware": ParameterValue(use_fake, value_type=bool)},
         ],
     )
+    # Perception nodes run with the venv's Python (ROS docs: "Using Python
+    # Packages with ROS 2"); rclpy etc. still come from the sourced workspace.
+    sam3 = Node(
+        package="tewatashi_perception",
+        executable="sam3_server",
+        name="sam3_server",
+        output="screen",
+        prefix=[LaunchConfiguration("perception_python")],
+        parameters=[os.path.join(perception, "config", "sam3.yaml")],
+        condition=IfCondition(LaunchConfiguration("use_perception")),
+    )
     viewer = Node(
         package="yasmin_viewer",
         executable="yasmin_viewer_node",
@@ -90,5 +111,5 @@ def generate_launch_description():
     )
 
     return LaunchDescription(
-        args + [driver, move_group, rviz, task_node, viewer, rosbridge, panel_server, browser]
+        args + [driver, move_group, rviz, task_node, sam3, viewer, rosbridge, panel_server, browser]
     )

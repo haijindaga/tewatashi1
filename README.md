@@ -18,6 +18,8 @@ UR7e（PolyScope 5）＋ Robotiq 2F-85 ＋ RealSense D435（グリッパ取付�
 | `tewatashi_control` | ur_robot_driver を包む起動 launch。関節範囲を狭めた `joint_limits.yaml` |
 | `tewatashi_moveit_config` | MoveIt 設定（OMPL / Pilz / CHOMP）。初期姿勢 `home` |
 | `tewatashi_task` | 常駐するタスクノード（YASMIN の状態機械）と操作パネル（Web） |
+| `tewatashi_perception` | 認識のサービスノード（いまは SAM3）。専用の venv の Python で動く |
+| `tewatashi_interfaces` | タスクと認識ノードの間のサービス定義 |
 | `tewatashi_bringup` | 全部を 1 コマンドで起動する launch |
 
 ## 前提
@@ -42,6 +44,30 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
+## 認識用の venv（最初に 1 回だけ）
+
+SAM3 などの深層学習ライブラリは ROS の apt / rosdep にないので、ROS 公式ドキュメント
+「Using Python Packages with ROS 2」の作法どおり、システムの Python（3.10）の上に
+`--system-site-packages` 付きの venv を作って入れます（conda は使いません）。
+
+```bash
+cd ~/projects/handover_ws
+python3 -m venv --system-site-packages venv_perception
+touch venv_perception/COLCON_IGNORE
+source venv_perception/bin/activate
+pip install "numpy<2" torch torchvision --index-url https://download.pytorch.org/whl/cu128
+pip install -r src/tewatashi1/tewatashi_perception/requirements.txt
+deactivate
+```
+
+- `numpy<2`：ROS Humble は NumPy 1 系前提
+- `pillow>=9.1`：Ubuntu 22.04 標準の Pillow 9.0 では transformers が動かない
+- SAM3 のモデル（facebook/sam3）は Hugging Face で利用申請とログイン（`hf auth login`）が必要
+- 実測：SAM3（float32）1 枚で GPU ピーク 4.0 GB
+
+起動時は `bringup.launch.py` が venv の Python で `sam3_server` を立ち上げます
+（venv の場所が違うときは `perception_python:=<venv>/bin/python`、使わないときは `use_perception:=false`）。
+
 ## ふだんの使い方（1 コマンドで全部起動）
 
 ```bash
@@ -54,11 +80,26 @@ ros2 launch tewatashi_bringup bringup.launch.py          # 模擬ハードウェ
 
 1. 起動後、まず **初期位置（home）への軌道** が計画され、RViz に表示されて承認待ちになります
 2. パネルの「この動作を実行」で動く（確認せずに動くことはありません。模擬のときだけ確認を外せます）
-3. 「スタート」で タスク（home → 観察姿勢 → 画像取得 → home）を最初から実行
+3. 「スタート」でタスク（home → 観察姿勢 → 画像取得 → 切り出し → home）を最初から実行
 4. おかしいと思ったら **「停止」（または Esc キー）**。やり直すときは「初期位置へ」→「スタート」
 5. 終わるときはターミナルで Ctrl+C
 
 パネル右側は YASMIN の状態機械ビューア（いまどの段階か）です。
+
+### カメラなしで認識を試す（写真をカメラの代わりに流す）
+
+```bash
+sudo apt install ros-humble-image-publisher   # 初回のみ
+ros2 run image_publisher image_publisher_node ~/写真.jpg \
+  --ros-args -r image_raw:=/camera/camera/color/image_raw
+```
+
+これを別のターミナルで流しながら「スタート」すると、画像取得 → 切り出し（SAM3）まで進み、
+結果は RViz の「SAM3 result」に表示されます。切り出す物は実行中でも変えられます：
+
+```bash
+ros2 param set /tewatashi_task target_object mug
+```
 画像やログをファイルに大量に書き出すことはしません（パネルのログは直近 30 行）。
 
 ### 実機（研究室で、下のチェックが済んでから）
@@ -153,4 +194,4 @@ ros2 launch tewatashi_moveit_config setup_assistant.launch.py
 
 ## ライセンス
 
-BSD-3-Clause。UR 公式チュートリアル、ur_description、roslibjs 由来の部分は `third_party/` のライセンスに従います。
+BSD-3-Clause（SAM3 のモデル自体は Meta の SAM License）。UR 公式チュートリアル、ur_description、roslibjs 由来の部分は `third_party/` のライセンスに従います。

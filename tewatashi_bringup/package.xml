@@ -12,6 +12,7 @@
   <exec_depend>rosbridge_server</exec_depend>
   <exec_depend>tewatashi_control</exec_depend>
   <exec_depend>tewatashi_moveit_config</exec_depend>
+  <exec_depend>tewatashi_perception</exec_depend>
   <exec_depend>tewatashi_task</exec_depend>
   <exec_depend>yasmin_viewer</exec_depend>
 

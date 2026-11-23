@@ -15,6 +15,7 @@ SUCCEEDED = "succeeded"
 ABORTED = "aborted"
 CANCELED = "canceled"
 NO_CAMERA = "no_camera"
+NOT_FOUND = "not_found"
 
 
 class MoveToPose(State):
@@ -96,3 +97,49 @@ class CaptureImage(State):
             return NO_CAMERA
         finally:
             ctx.node.destroy_subscription(sub)
+
+
+class SegmentObject(State):
+    """Ask the SAM3 service for a mask of the target object in the last image."""
+
+    def __init__(self, ctx, timeout_sec=180.0):
+        # The first call also loads the model, hence the long timeout.
+        super().__init__([SUCCEEDED, NOT_FOUND, ABORTED, CANCELED])
+        self._ctx = ctx
+        self._timeout = timeout_sec
+        self.set_description("SAM3: mask of the target object")
+
+    def execute(self, blackboard):
+        ctx = self._ctx
+        image = ctx.latest_image()
+        if image is None:
+            ctx.log("切り出し: 画像がありません", error=True)
+            return ABORTED
+        target = ctx.target_object()
+        client = ctx.segment_client()
+        if not client.wait_for_service(timeout_sec=2.0):
+            ctx.log("切り出し: sam3_server が起動していません", error=True)
+            return ABORTED
+        ctx.log(f"「{target}」を切り出し中（初回はモデル読み込みで時間がかかります）")
+        request = ctx.segment_request(image, target)
+        future = client.call_async(request)
+        waited = 0.0
+        while not future.done():
+            if self.is_canceled():
+                future.cancel()
+                return CANCELED
+            if waited > self._timeout:
+                ctx.log("切り出し: 時間切れ", error=True)
+                return ABORTED
+            threading.Event().wait(0.1)
+            waited += 0.1
+        res = future.result()
+        if res is None:
+            ctx.log("切り出し: 応答なし", error=True)
+            return ABORTED
+        if not res.success:
+            ctx.log(f"切り出し: {res.message}", error=("error" in res.message))
+            return NOT_FOUND if "not found" in res.message else ABORTED
+        ctx.set_latest_mask(res.mask, res.score)
+        ctx.log(f"切り出し成功: {res.message}（RViz の SAM3 result に表示）")
+        return SUCCEEDED

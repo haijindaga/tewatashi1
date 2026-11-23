@@ -10,6 +10,9 @@ tewatashi_task:
     # Plan a motion to 'home' right after start-up (still waits for approval).
     home_on_startup: true
     image_topic: /camera/camera/color/image_raw
+    # Object to segment. Can be changed while running:
+    #   ros2 param set /tewatashi_task target_object mug
+    target_object: hammer
     pose_names: [home, observe]
     pose:
       # UR "up" pose = ur_moveit_config 'up' = SRDF group_state 'home'

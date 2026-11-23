@@ -1,0 +1,8 @@
+# Segment one object named by a text prompt (open-vocabulary).
+sensor_msgs/Image image   # rgb8 or bgr8
+string prompt             # object name, e.g. "hammer"
+---
+bool success
+string message
+sensor_msgs/Image mask    # mono8, 255 = object (best instance only)
+float32 score

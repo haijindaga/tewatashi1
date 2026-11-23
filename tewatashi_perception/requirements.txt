@@ -1,0 +1,7 @@
+# Installed into the perception venv (see README), not into the system Python.
+# Versions confirmed on the lab PC (Ubuntu 22.04, Python 3.10.12), 2026-11-24.
+#   pip install "numpy<2" torch torchvision --index-url https://download.pytorch.org/whl/cu128
+numpy<2            # ROS Humble expects NumPy 1.x
+pillow>=9.1        # Ubuntu 22.04 ships Pillow 9.0, too old for transformers
+transformers==5.20.2
+accelerate==1.15.0

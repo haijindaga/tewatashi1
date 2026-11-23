@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>tewatashi_perception</name>
+  <version>0.1.0</version>
+  <description>Perception service nodes (SAM3, ...). Run with the perception venv.</description>
+  <maintainer email="todo@example.com">suzutaro</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>tewatashi_interfaces</exec_depend>
+  <!-- torch / transformers are not rosdep keys: installed into the venv from
+       requirements.txt (see README). -->
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
