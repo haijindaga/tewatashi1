@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>tewatashi 操作パネル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>tewatashi 操作パネル</h1>
+  <span id="mode" class="badge">-</span>
+  <span id="conn" class="badge off">未接続</span>
+</header>
+
+<main>
+  <section id="controls">
+    <button id="btn-stop" class="big stop" title="Esc キーでも停止">停止 <small>Esc</small></button>
+
+    <div id="approval" class="card hidden">
+      <div class="card-title">承認待ち</div>
+      <p id="approval-text"></p>
+      <button id="btn-approve" class="big approve">この動作を実行</button>
+    </div>
+
+    <div class="row">
+      <button id="btn-start" class="big start">スタート</button>
+      <button id="btn-home" class="big home">初期位置へ</button>
+    </div>
+
+    <label class="check">
+      <input type="checkbox" id="chk-approval" checked>
+      動作の前に毎回確認する（実機では外せません）
+    </label>
+
+    <div class="card">
+      <div class="kv"><span>実行中</span><b id="task">-</b></div>
+      <div class="kv"><span>現在の段階</span><b id="state">-</b></div>
+      <div class="kv"><span>前回の結果</span><b id="result">-</b></div>
+    </div>
+
+    <div class="card log-card">
+      <div class="card-title">ログ</div>
+      <ol id="log"></ol>
+    </div>
+  </section>
+
+  <section id="flow">
+    <iframe id="viewer" title="state machine viewer"></iframe>
+  </section>
+</main>
+
+<script src="roslib.min.js"></script>
+<script src="panel.js"></script>
+</body>
+</html>

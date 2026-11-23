@@ -1,0 +1,20 @@
+# Parameters of the task node. Joint order (rad):
+#   shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3
+tewatashi_task:
+  ros__parameters:
+    # Always set explicitly; must be in (0, 0.3]. 0.1 = MoveIt Setup Assistant default.
+    velocity_scaling: 0.1
+    acceleration_scaling: 0.1
+    # Ask the operator before every motion. Forced to true on real hardware.
+    require_approval: true
+    # Plan a motion to 'home' right after start-up (still waits for approval).
+    home_on_startup: true
+    image_topic: /camera/camera/color/image_raw
+    pose_names: [home, observe]
+    pose:
+      # UR "up" pose = ur_moveit_config 'up' = SRDF group_state 'home'
+      home: [0.0, -1.5707, 0.0, -1.5707, 0.0, 0.0]
+      # PROVISIONAL. Tool pointing down, flange ~0.58 m above the table,
+      # ~0.34 m in front of the base (computed with UR7e DH parameters).
+      # Re-teach in the lab.
+      observe: [0.0, -1.9, 1.6, -1.27, -1.57, 0.0]

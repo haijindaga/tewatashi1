@@ -17,14 +17,16 @@ UR7e（PolyScope 5）＋ Robotiq 2F-85 ＋ RealSense D435（グリッパ取付�
 | `tewatashi_description` | セル（机・UR7e・グリッパ外形・カメラ外形）の URDF と表示用 launch |
 | `tewatashi_control` | ur_robot_driver を包む起動 launch。関節範囲を狭めた `joint_limits.yaml` |
 | `tewatashi_moveit_config` | MoveIt 設定（OMPL / Pilz / CHOMP）。初期姿勢 `home` |
+| `tewatashi_task` | 常駐するタスクノード（YASMIN の状態機械）と操作パネル（Web） |
+| `tewatashi_bringup` | 全部を 1 コマンドで起動する launch |
 
 ## 前提
 
 - Ubuntu 22.04 / ROS 2 Humble（apt で導入済み）
-- `ros-humble-ur`（ur_robot_driver 2.13 系、ur_description 2.10 系）、`ros-humble-moveit`
+- `ros-humble-ur`、`ros-humble-moveit`、YASMIN、pymoveit2、rosbridge（下の `rosdep install` が package.xml を見て入れます）
 
 ```bash
-sudo apt install ros-humble-ur ros-humble-moveit
+sudo apt update
 ```
 
 ## ビルド
@@ -40,7 +42,36 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-## 動作確認
+## ふだんの使い方（1 コマンドで全部起動）
+
+```bash
+source ~/projects/handover_ws/install/setup.bash
+ros2 launch tewatashi_bringup bringup.launch.py          # 模擬ハードウェア
+```
+
+ドライバ・MoveIt・RViz・タスクノード・状態機械ビューア・操作パネルが立ち上がり、
+ブラウザで操作パネル（http://127.0.0.1:8080）が開きます。
+
+1. 起動後、まず **初期位置（home）への軌道** が計画され、RViz に表示されて承認待ちになります
+2. パネルの「この動作を実行」で動く（確認せずに動くことはありません。模擬のときだけ確認を外せます）
+3. 「スタート」で タスク（home → 観察姿勢 → 画像取得 → home）を最初から実行
+4. おかしいと思ったら **「停止」（または Esc キー）**。やり直すときは「初期位置へ」→「スタート」
+5. 終わるときはターミナルで Ctrl+C
+
+パネル右側は YASMIN の状態機械ビューア（いまどの段階か）です。
+画像やログをファイルに大量に書き出すことはしません（パネルのログは直近 30 行）。
+
+### 実機（研究室で、下のチェックが済んでから）
+
+```bash
+ros2 launch tewatashi_bringup bringup.launch.py \
+  use_fake_hardware:=false robot_ip:=<ロボットのIP> \
+  kinematics_params_file:=<ur_calibrationで取り出したyaml>
+```
+
+ペンダント側で External Control プログラムを再生してから操作します。
+
+## 個別に動作確認するとき
 
 ### 1. 見た目だけ確認（ロボットは動かさない）
 
@@ -74,16 +105,6 @@ RViz の MotionPlanning パネルで：
 
 速度・加速度は既定で 10%（`joint_limits.yaml` の scaling 0.1）。
 
-### 3. 実機（研究室で、下のチェックが済んでから）
-
-```bash
-ros2 launch tewatashi_control start_robot.launch.py \
-  use_fake_hardware:=false robot_ip:=<ロボットのIP> \
-  kinematics_params_file:=<ur_calibrationで取り出したyaml>
-```
-
-ペンダント側で External Control プログラムを再生してから Plan / Execute。
-
 ## 安全のための設定（どこに何があるか）
 
 | 対策 | 場所 | 出典・根拠 |
@@ -92,7 +113,12 @@ ros2 launch tewatashi_control start_robot.launch.py \
 | 速度・加速度 10% | `tewatashi_moveit_config/config/joint_limits.yaml` | MoveIt Setup Assistant の既定値 |
 | 机・グリッパ・カメラを衝突モデルに入れる | `tewatashi_description/urdf/tewatashi_cell_macro.xacro` | UR 公式チュートリアル（my_robot_cell） |
 | 起動既定は模擬ハードウェア | `tewatashi_control/launch/start_robot.launch.py` | 本プロジェクトの選択 |
-| 軌道は必ず MoveIt を通す | — | ros2_control の軌道コントローラは関節範囲を検査しないため |
+| 軌道は必ず MoveIt を通す | `tewatashi_task/tewatashi_task/motion.py` | ros2_control の軌道コントローラは関節範囲を検査しないため |
+| 速度倍率をプログラムから必ず明示（0 < 倍率 ≤ 0.3） | `tewatashi_task/config/task.yaml`、`motion.py` | move_group は倍率 0.0 を **1.0（最高速）** として扱う（MoveIt 2 Humble の TOTG 実装）。`joint_limits.yaml` の 0.1 は RViz 等からの操作にしか効かない |
+| 動作前に計画を RViz に表示して承認 | `tewatashi_task`（実機では外せない） | MoveIt チュートリアルの「次へ」で進める確認と同じ考え方 |
+| Pilz PTP で計画（毎回同じ動き、衝突があれば動かない） | `motion.py` | Pilz industrial motion planner |
+| 停止ボタン・Esc | 操作パネル → `~/stop` | ソフトウェア停止（軌道実行の取り消し）。非常時はペンダントの非常停止 |
+| Web 系はすべて 127.0.0.1 のみで待ち受け | `tewatashi_bringup/launch/bringup.launch.py` | 研究室ネットワークからロボットを操作されないため |
 | 最後の砦 | ペンダントの Safety 設定・非常停止 | UR マニュアル |
 
 **注意：** 2 つの `joint_limits.yaml` は手で同期しています。片方を変えたらもう片方も。
@@ -104,6 +130,7 @@ ros2 launch tewatashi_control start_robot.launch.py \
 - [ ] 机の大きさ・ロボット基台からの位置（`table_size_*`, `table_center_*`）
 - [ ] フランジから指先中心までの距離（`tcp_offset_z`、2F-85 単体なら約 0.174 m＋カップリング）
 - [ ] カメラ取付位置・向き（`camera_mount_xyz`, `camera_mount_rpy`）→ 後でハンドアイ校正で置き換え
+- [ ] 観察姿勢 `observe`（`tewatashi_task/config/task.yaml`、いまは計算で決めた仮の値）
 
 ロボット・PC 側：
 
@@ -126,4 +153,4 @@ ros2 launch tewatashi_moveit_config setup_assistant.launch.py
 
 ## ライセンス
 
-BSD-3-Clause。UR 公式チュートリアルおよび ur_description 由来の部分は `third_party/` のライセンスに従います。
+BSD-3-Clause。UR 公式チュートリアル、ur_description、roslibjs 由来の部分は `third_party/` のライセンスに従います。
