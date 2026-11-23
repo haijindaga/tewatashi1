@@ -2,7 +2,8 @@
 
   ~/segment      tewatashi_interfaces/Segment   image + object name -> mask
   ~/unload       std_srvs/Trigger               free the GPU memory
-  ~/debug_image  sensor_msgs/Image              last result drawn over the image (RViz)
+  ~/debug_image  sensor_msgs/Image              last result drawn over the image
+                                                (re-sent at 1 Hz so late viewers see it)
 
 Runs with the Python of the perception venv (see README): SAM3 is used through
 Hugging Face transformers (Sam3Model, "facebook/sam3"). The model is loaded at
@@ -68,6 +69,8 @@ class Sam3Server(Node):
         self.create_service(Segment, "~/segment", self._on_segment, callback_group=group)
         self.create_service(Trigger, "~/unload", self._on_unload, callback_group=group)
         self._debug_pub = self.create_publisher(Image, "~/debug_image", 1)
+        self._last_debug = None
+        self.create_timer(1.0, self._republish_debug, callback_group=group)
         if self.get_parameter("preload").value:
             self._load()
         self.get_logger().info("ready (model is loaded at the first request)")
@@ -146,7 +149,12 @@ class Sam3Server(Node):
         overlay = rgb.copy()
         on = mask > 0
         overlay[on] = (0.5 * overlay[on] + 0.5 * np.array([255, 80, 0])).astype(np.uint8)
-        self._debug_pub.publish(rgb_to_image(overlay, header))
+        self._last_debug = rgb_to_image(overlay, header)
+        self._debug_pub.publish(self._last_debug)
+
+    def _republish_debug(self):
+        if self._last_debug is not None:
+            self._debug_pub.publish(self._last_debug)
 
 
 def main():

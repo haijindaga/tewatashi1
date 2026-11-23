@@ -7,9 +7,14 @@ const params = new URLSearchParams(window.location.search);
 const ROSBRIDGE_URL = params.get("rosbridge") || `ws://${host}:9090`;
 const VIEWER_URL = params.get("viewer") || `http://${host}:5000`;
 const NODE = "/tewatashi_task";
+const VIDEO_URL = params.get("video") || `http://${host}:8081`;
+const CAMERA_TOPIC = params.get("camera") || "/camera/camera/color/image_raw";
 
 const $ = (id) => document.getElementById(id);
 $("viewer").src = VIEWER_URL;
+// web_video_server keeps the MJPEG stream open and shows frames as they arrive.
+$("img-camera").src = `${VIDEO_URL}/stream?topic=${CAMERA_TOPIC}&width=640`;
+$("img-sam3").src = `${VIDEO_URL}/stream?topic=/sam3_server/debug_image&width=640`;
 
 let ros = null;
 let connected = false;

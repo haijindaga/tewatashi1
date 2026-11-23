@@ -95,7 +95,7 @@ ros2 run image_publisher image_publisher_node ~/写真.jpg \
 ```
 
 これを別のターミナルで流しながら「スタート」すると、画像取得 → 切り出し（SAM3）まで進み、
-結果は RViz の「SAM3 result」に表示されます。切り出す物は実行中でも変えられます：
+結果はパネル右下の「切り出し結果」に表示されます（web_video_server 経由）。切り出す物は実行中でも変えられます：
 
 ```bash
 ros2 param set /tewatashi_task target_object mug

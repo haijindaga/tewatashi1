@@ -7,7 +7,7 @@
 Started:
   driver (ur_robot_driver via tewatashi_control), move_group, RViz,
   task node (YASMIN), SAM3 server (perception venv), yasmin_viewer,
-  rosbridge, and a static web server for
+  web_video_server (images for the panel), rosbridge, and a static web server for
   the operator panel at http://127.0.0.1:8080 .
 All network services listen on 127.0.0.1 only.
 """
@@ -93,6 +93,12 @@ def generate_launch_description():
         executable="yasmin_viewer_node",
         parameters=[{"host": "127.0.0.1", "port": 5000}],
     )
+    # Streams ROS images to the operator panel (MJPEG over HTTP).
+    video = Node(
+        package="web_video_server",
+        executable="web_video_server",
+        parameters=[{"address": "127.0.0.1", "port": 8081}],
+    )
     rosbridge = Node(
         package="rosbridge_server",
         executable="rosbridge_websocket",
@@ -111,5 +117,5 @@ def generate_launch_description():
     )
 
     return LaunchDescription(
-        args + [driver, move_group, rviz, task_node, sam3, viewer, rosbridge, panel_server, browser]
+        args + [driver, move_group, rviz, task_node, sam3, viewer, video, rosbridge, panel_server, browser]
     )

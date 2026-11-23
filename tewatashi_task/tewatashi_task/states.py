@@ -141,5 +141,5 @@ class SegmentObject(State):
             ctx.log(f"切り出し: {res.message}", error=("error" in res.message))
             return NOT_FOUND if "not found" in res.message else ABORTED
         ctx.set_latest_mask(res.mask, res.score)
-        ctx.log(f"切り出し成功: {res.message}（RViz の SAM3 result に表示）")
+        ctx.log(f"切り出し成功: {res.message}（パネルの「切り出し結果」に表示）")
         return SUCCEEDED

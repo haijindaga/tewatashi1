@@ -26,15 +26,6 @@ Visualization Manager:
       Scene Robot:
         Robot Alpha: 0.5
       Value: true
-    - Class: rviz_default_plugins/Image
-      Name: SAM3 result
-      Topic:
-        Depth: 1
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /sam3_server/debug_image
-      Value: true
   Global Options:
     Fixed Frame: world
   Tools:
