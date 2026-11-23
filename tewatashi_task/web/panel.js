@@ -22,6 +22,7 @@ function connect() {
     $("conn").textContent = "接続中";
     $("conn").className = "badge on";
     subscribeStatus();
+    subscribeJoints();
     render();
   });
   ros.on("close", () => {
@@ -49,6 +50,63 @@ function subscribeStatus() {
     render();
   });
 }
+
+// Same order as task.yaml / motion.py (UR_JOINTS). /joint_states comes in a
+// different order, so values are always matched by name.
+const UR_JOINTS = [
+  "shoulder_pan_joint",
+  "shoulder_lift_joint",
+  "elbow_joint",
+  "wrist_1_joint",
+  "wrist_2_joint",
+  "wrist_3_joint",
+];
+let jointValues = null;
+
+function subscribeJoints() {
+  const topic = new ROSLIB.Topic({
+    ros,
+    name: "/joint_states",
+    messageType: "sensor_msgs/msg/JointState",
+    throttle_rate: 200,
+  });
+  topic.subscribe((msg) => {
+    const byName = {};
+    msg.name.forEach((n, i) => (byName[n] = msg.position[i]));
+    if (UR_JOINTS.every((n) => n in byName)) {
+      jointValues = UR_JOINTS.map((n) => byName[n]);
+      renderJoints();
+    }
+  });
+}
+
+function renderJoints() {
+  const table = $("joints");
+  table.innerHTML = "";
+  UR_JOINTS.forEach((n, i) => {
+    const tr = document.createElement("tr");
+    const rad = jointValues ? jointValues[i] : NaN;
+    const deg = (rad * 180) / Math.PI;
+    tr.innerHTML =
+      `<td>${n.replace("_joint", "")}</td>` +
+      `<td class="num">${jointValues ? deg.toFixed(1) + "°" : "-"}</td>` +
+      `<td class="num muted">${jointValues ? rad.toFixed(4) : "-"}</td>`;
+    table.appendChild(tr);
+  });
+  $("btn-copy").disabled = !jointValues;
+}
+
+$("btn-copy").onclick = async () => {
+  if (!jointValues) return;
+  const text = "[" + jointValues.map((v) => v.toFixed(4)).join(", ") + "]";
+  try {
+    await navigator.clipboard.writeText(text);
+    $("copy-msg").textContent = "コピーしました";
+  } catch (e) {
+    $("copy-msg").textContent = text; // fallback: show it to copy by hand
+  }
+  setTimeout(() => ($("copy-msg").textContent = ""), 4000);
+};
 
 function call(name, type, request, onDone) {
   if (!connected) return;
@@ -118,5 +176,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") trigger("stop");
 });
 
+renderJoints();
 render();
 connect();
