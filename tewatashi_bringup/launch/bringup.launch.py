@@ -105,7 +105,7 @@ def generate_launch_description():
         parameters=[{"address": "127.0.0.1", "port": 9090}],
     )
     panel_server = ExecuteProcess(
-        cmd=["python3", "-m", "http.server", panel_port,
+        cmd=["python3", "-m", "tewatashi_task.panel_server", "--port", panel_port,
              "--bind", "127.0.0.1", "--directory", os.path.join(task, "web")],
     )
     browser = TimerAction(
