@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<!--
+  Cell description + ros2_control tag for the UR arm.
+  Follows my_robot_cell_controlled.urdf.xacro of the official UR tutorial,
+  adapted to ur_description 2.10.0 / ur_robot_driver 2.13.0 (Humble) and
+  without tf_prefix, so that the joint names match the stock UR controllers.
+  This file is loaded by ur_robot_driver/ur_control.launch.py through
+  tewatashi_control/launch/start_robot.launch.py.
+-->
+<robot name="tewatashi_cell" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find tewatashi_description)/urdf/tewatashi_cell_macro.xacro"/>
+  <xacro:include filename="$(find ur_description)/urdf/ur.ros2_control.xacro"/>
+
+  <xacro:arg name="ur_type" default="ur7e"/>
+  <xacro:arg name="joint_limit_params" default="$(find tewatashi_control)/config/$(arg ur_type)/joint_limits.yaml"/>
+  <xacro:arg name="kinematics_params" default="$(find tewatashi_control)/config/$(arg ur_type)/default_kinematics.yaml"/>
+  <xacro:arg name="physical_params" default="$(find tewatashi_control)/config/$(arg ur_type)/physical_parameters.yaml"/>
+  <xacro:arg name="visual_params" default="$(find tewatashi_control)/config/$(arg ur_type)/visual_parameters.yaml"/>
+
+  <xacro:arg name="robot_ip" default="0.0.0.0"/>
+  <xacro:arg name="tf_prefix" default=""/>
+  <xacro:arg name="headless_mode" default="false"/>
+  <xacro:arg name="script_filename" default="$(find ur_client_library)/resources/external_control.urscript"/>
+  <xacro:arg name="output_recipe_filename" default="$(find ur_robot_driver)/resources/rtde_output_recipe.txt"/>
+  <xacro:arg name="input_recipe_filename" default="$(find ur_robot_driver)/resources/rtde_input_recipe.txt"/>
+  <xacro:arg name="use_fake_hardware" default="false"/>
+  <xacro:arg name="fake_sensor_commands" default="false"/>
+
+  <!-- Tool communication (needed only if the gripper is driven through the
+       wrist RS485 port instead of the Robotiq URCap). -->
+  <xacro:arg name="use_tool_communication" default="false"/>
+  <xacro:arg name="tool_voltage" default="0"/>
+  <xacro:arg name="tool_parity" default="0"/>
+  <xacro:arg name="tool_baud_rate" default="115200"/>
+  <xacro:arg name="tool_stop_bits" default="1"/>
+  <xacro:arg name="tool_rx_idle_chars" default="1.5"/>
+  <xacro:arg name="tool_tx_idle_chars" default="3.5"/>
+  <xacro:arg name="tool_device_name" default="/tmp/ttyUR"/>
+  <xacro:arg name="tool_tcp_port" default="54321"/>
+
+  <xacro:property name="kinematics_params_file" value="$(arg kinematics_params)"/>
+  <xacro:property name="kinematics_hash" value="${xacro.load_yaml(kinematics_params_file)['kinematics']['hash']}"/>
+
+  <link name="world"/>
+
+  <xacro:tewatashi_cell
+    parent="world"
+    ur_type="$(arg ur_type)"
+    tf_prefix="$(arg tf_prefix)"
+    joint_limits_parameters_file="$(arg joint_limit_params)"
+    kinematics_parameters_file="$(arg kinematics_params)"
+    physical_parameters_file="$(arg physical_params)"
+    visual_parameters_file="$(arg visual_params)"
+  />
+
+  <xacro:ur_ros2_control
+    name="$(arg ur_type)"
+    tf_prefix="$(arg tf_prefix)"
+    hash_kinematics="${kinematics_hash}"
+    robot_ip="$(arg robot_ip)"
+    script_filename="$(arg script_filename)"
+    output_recipe_filename="$(arg output_recipe_filename)"
+    input_recipe_filename="$(arg input_recipe_filename)"
+    use_fake_hardware="$(arg use_fake_hardware)"
+    fake_sensor_commands="$(arg fake_sensor_commands)"
+    headless_mode="$(arg headless_mode)"
+    use_tool_communication="$(arg use_tool_communication)"
+    tool_voltage="$(arg tool_voltage)"
+    tool_parity="$(arg tool_parity)"
+    tool_baud_rate="$(arg tool_baud_rate)"
+    tool_stop_bits="$(arg tool_stop_bits)"
+    tool_rx_idle_chars="$(arg tool_rx_idle_chars)"
+    tool_tx_idle_chars="$(arg tool_tx_idle_chars)"
+    tool_device_name="$(arg tool_device_name)"
+    tool_tcp_port="$(arg tool_tcp_port)"
+  />
+
+  <!-- The gripper's ros2_control tag will be added here once the connection
+       method is decided (see README.md). -->
+
+</robot>

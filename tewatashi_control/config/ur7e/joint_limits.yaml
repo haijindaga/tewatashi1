@@ -1,0 +1,96 @@
+# UR7e joint limits used by this cell.
+#
+# Copied from ur_description 2.10.0 (config/ur7e/joint_limits.yaml, BSD-3-Clause)
+# and NARROWED on purpose:
+#   - shoulder_pan, shoulder_lift, wrist_1, wrist_2, wrist_3: +-180 deg
+#     (the real joints allow +-360 deg). This follows the practice in UR's own
+#     configuration of artificially halving a joint range to avoid planning
+#     problems (see the elbow_joint comment below). Applying +-180 deg to the
+#     other joints is this project's choice, mainly to avoid full wrist turns
+#     that would wind the camera cable.
+#   - elbow_joint: unchanged (+-180 deg, already limited by UR).
+# Keep tewatashi_moveit_config/config/joint_limits.yaml in sync.
+#
+# NOTE: before starting the real robot, move it (pendant) into these ranges,
+# otherwise MoveIt reports the start state as out of bounds.
+#
+# Joints limits
+#
+# Sources:
+#
+#  - Universal Robots e-Series, User Manual, UR5e, Version 5.8
+#    https://s3-eu-west-1.amazonaws.com/ur-support-site/69091/99404_UR5e_User_Manual_en_Global.pdf
+#  - Support > Articles > UR articles > Max. joint torques
+#    https://www.universal-robots.com/articles/ur-articles/max-joint-torques
+#    retrieved: 2020-06-16, last modified: 2020-06-09
+joint_limits:
+  shoulder_pan_joint:
+    # acceleration limits are not publicly available
+    has_acceleration_limits: false
+    has_effort_limits: true
+    has_position_limits: true
+    has_velocity_limits: true
+    max_effort: 150.0
+    max_position: !degrees  180.0
+    max_velocity: !degrees  180.0
+    min_position: !degrees -180.0
+  shoulder_lift_joint:
+    # acceleration limits are not publicly available
+    has_acceleration_limits: false
+    has_effort_limits: true
+    has_position_limits: true
+    has_velocity_limits: true
+    max_effort: 150.0
+    max_position: !degrees  180.0
+    max_velocity: !degrees  180.0
+    min_position: !degrees -180.0
+  elbow_joint:
+    # acceleration limits are not publicly available
+    has_acceleration_limits: false
+    has_effort_limits: true
+    has_position_limits: true
+    has_velocity_limits: true
+    max_effort: 150.0
+    # we artificially limit this joint to half its actual joint position limit
+    # to avoid (MoveIt/OMPL) planning problems, as due to the physical
+    # construction of the robot, it's impossible to rotate the 'elbow_joint'
+    # over more than approx +- 1 pi (the shoulder lift joint gets in the way).
+    #
+    # This leads to planning problems as the search space will be divided into
+    # two sections, with no connections from one to the other.
+    #
+    # Refer to https://github.com/ros-industrial/universal_robot/issues/265 for
+    # more information.
+    max_position: !degrees  180.0
+    max_velocity: !degrees  180.0
+    min_position: !degrees -180.0
+  wrist_1_joint:
+    # acceleration limits are not publicly available
+    has_acceleration_limits: false
+    has_effort_limits: true
+    has_position_limits: true
+    has_velocity_limits: true
+    max_effort: 28.0
+    max_position: !degrees  180.0
+    max_velocity: !degrees  180.0
+    min_position: !degrees -180.0
+  wrist_2_joint:
+    # acceleration limits are not publicly available
+    has_acceleration_limits: false
+    has_effort_limits: true
+    has_position_limits: true
+    has_velocity_limits: true
+    max_effort: 28.0
+    max_position: !degrees  180.0
+    max_velocity: !degrees  180.0
+    min_position: !degrees -180.0
+  wrist_3_joint:
+    # acceleration limits are not publicly available
+    has_acceleration_limits: false
+    has_effort_limits: true
+    has_position_limits: true
+    has_velocity_limits: true
+    max_effort: 28.0
+    max_position: !degrees  180.0
+    max_velocity: !degrees  180.0
+    min_position: !degrees -180.0

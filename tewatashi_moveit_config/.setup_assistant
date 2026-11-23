@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: tewatashi_description
+    relative_path: urdf/tewatashi_cell.urdf.xacro
+  srdf:
+    relative_path: config/tewatashi_cell.srdf
+  package_settings:
+    author_name: suzutaro
+    author_email: todo@example.com
+    generated_timestamp: 1795454400

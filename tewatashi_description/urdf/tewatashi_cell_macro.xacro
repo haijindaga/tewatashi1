@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<!--
+  Work cell: UR7e on a table, Robotiq 2F-85 (simplified envelope) and a
+  RealSense D435 on the wrist (simplified envelope).
+
+  Structure follows Universal_Robots_ROS2_Tutorials/my_robot_cell
+  (my_robot_cell_macro.xacro, BSD-3-Clause, see third_party/).
+
+  PROVISIONAL VALUES: table size, robot position, gripper/camera envelopes,
+  TCP offset and camera mount pose are placeholders. Measure them in the lab
+  and change the macro arguments (see README.md).
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+
+  <xacro:macro name="tewatashi_cell" params="
+    parent
+    ur_type
+    joint_limits_parameters_file
+    kinematics_parameters_file
+    physical_parameters_file
+    visual_parameters_file
+    tf_prefix:=''
+    table_size_x:=1.2
+    table_size_y:=0.8
+    table_thickness:=0.05
+    table_center_x:=0.35
+    table_center_y:=0.0
+    tcp_offset_z:=0.174
+    camera_mount_xyz:='0.0 -0.07 0.04'
+    camera_mount_rpy:='-1.5708 -1.5708 0.0'
+    ">
+
+    <material name="tewatashi_table_gray">
+      <color rgba="0.6 0.6 0.6 1.0"/>
+    </material>
+    <material name="tewatashi_gripper_dark">
+      <color rgba="0.15 0.15 0.15 1.0"/>
+    </material>
+    <material name="tewatashi_camera_silver">
+      <color rgba="0.75 0.75 0.78 1.0"/>
+    </material>
+
+    <!-- The robot base sits on the table top. World origin = robot base. -->
+    <link name="robot_mount"/>
+    <joint name="world_to_robot_mount" type="fixed">
+      <parent link="${parent}"/>
+      <child link="robot_mount"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Table: a box whose top surface is at z = 0 -->
+    <link name="table">
+      <visual>
+        <origin xyz="0 0 ${-table_thickness / 2}" rpy="0 0 0"/>
+        <geometry>
+          <box size="${table_size_x} ${table_size_y} ${table_thickness}"/>
+        </geometry>
+        <material name="tewatashi_table_gray"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${-table_thickness / 2}" rpy="0 0 0"/>
+        <geometry>
+          <box size="${table_size_x} ${table_size_y} ${table_thickness}"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="world_to_table" type="fixed">
+      <parent link="${parent}"/>
+      <child link="table"/>
+      <origin xyz="${table_center_x} ${table_center_y} 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- UR arm from the official description (no ros2_control tag here;
+         the control package adds it, as in the official tutorial). -->
+    <xacro:ur_robot
+      name="${ur_type}"
+      tf_prefix="${tf_prefix}"
+      parent="robot_mount"
+      joint_limits_parameters_file="${joint_limits_parameters_file}"
+      kinematics_parameters_file="${kinematics_parameters_file}"
+      physical_parameters_file="${physical_parameters_file}"
+      visual_parameters_file="${visual_parameters_file}"
+      generate_ros2_control_tag="false"
+    >
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </xacro:ur_robot>
+
+    <!--
+      Gripper: simplified collision envelope of a Robotiq 2F-85 with coupling.
+      Deliberately a bit larger than the real gripper (conservative).
+      To be replaced by robotiq_description once the gripper connection
+      method (URCap socket or tool communication) is decided.
+    -->
+    <link name="gripper_body">
+      <visual>
+        <origin xyz="0 0 0.065" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.04" length="0.13"/>
+        </geometry>
+        <material name="tewatashi_gripper_dark"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.065" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.042" length="0.13"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0.155" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.12 0.03 0.05"/>
+        </geometry>
+        <material name="tewatashi_gripper_dark"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.155" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.12 0.035 0.05"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="tool0_to_gripper_body" type="fixed">
+      <parent link="${tf_prefix}tool0"/>
+      <child link="gripper_body"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Grasp centre between the fingertips (no geometry). -->
+    <link name="grasp_tcp"/>
+    <joint name="tool0_to_grasp_tcp" type="fixed">
+      <parent link="${tf_prefix}tool0"/>
+      <child link="grasp_tcp"/>
+      <origin xyz="0 0 ${tcp_offset_z}" rpy="0 0 0"/>
+    </joint>
+
+    <!--
+      Camera: simplified envelope of a RealSense D435 (90 x 25 x 25 mm) on a
+      bracket at the side of the gripper. Only the mounting frame
+      "camera_link" is defined here; the realsense2_camera driver publishes
+      the optical frames below camera_link itself, so they must not be
+      duplicated in this URDF. The bracket pose is a placeholder until
+      hand-eye calibration.
+    -->
+    <link name="camera_link">
+      <visual>
+        <origin xyz="-0.0125 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.025 0.09 0.025"/>
+        </geometry>
+        <material name="tewatashi_camera_silver"/>
+      </visual>
+      <collision>
+        <origin xyz="-0.0125 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.03 0.095 0.03"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="tool0_to_camera_link" type="fixed">
+      <parent link="${tf_prefix}tool0"/>
+      <child link="camera_link"/>
+      <origin xyz="${camera_mount_xyz}" rpy="${camera_mount_rpy}"/>
+    </joint>
+  </xacro:macro>
+</robot>

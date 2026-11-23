@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!--
+  Visualisation / MoveIt description of the cell (no ros2_control tag).
+  Follows my_robot_cell.urdf.xacro of the official UR tutorial.
+-->
+<robot name="tewatashi_cell" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find tewatashi_description)/urdf/tewatashi_cell_macro.xacro"/>
+
+  <xacro:arg name="ur_type" default="ur7e"/>
+  <!-- Defaults point to ur_description, as in the official tutorial.
+       The narrowed joint position limits used for planning are set in
+       tewatashi_moveit_config/config/joint_limits.yaml (MoveIt overrides
+       URDF limits) and, for the controlled robot, in
+       tewatashi_control/config/ur7e/joint_limits.yaml. Keep both in sync. -->
+  <xacro:arg name="joint_limits_parameters_file" default="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml"/>
+  <xacro:arg name="kinematics_parameters_file" default="$(find ur_description)/config/$(arg ur_type)/default_kinematics.yaml"/>
+  <xacro:arg name="physical_parameters_file" default="$(find ur_description)/config/$(arg ur_type)/physical_parameters.yaml"/>
+  <xacro:arg name="visual_parameters_file" default="$(find ur_description)/config/$(arg ur_type)/visual_parameters.yaml"/>
+
+  <link name="world"/>
+
+  <xacro:tewatashi_cell
+    parent="world"
+    ur_type="$(arg ur_type)"
+    joint_limits_parameters_file="$(arg joint_limits_parameters_file)"
+    kinematics_parameters_file="$(arg kinematics_parameters_file)"
+    physical_parameters_file="$(arg physical_parameters_file)"
+    visual_parameters_file="$(arg visual_parameters_file)"
+  />
+
+</robot>
