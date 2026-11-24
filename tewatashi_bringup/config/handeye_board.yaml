@@ -1,0 +1,11 @@
+# ArUco grid board for hand-eye calibration (aruco_opencv board_descriptions).
+# Printed from tools/make_board_pdf.py on A4 landscape at 100 % scale.
+# After printing, MEASURE one marker's black square with a ruler and put the
+# real value (in metres) into marker_size; separation scales with it.
+- name: calib
+  first_id: 0
+  markers_x: 5
+  markers_y: 4
+  marker_size: 0.040
+  separation: 0.010
+  frame_at_center: true

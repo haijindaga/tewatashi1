@@ -146,6 +146,41 @@ RViz の MotionPlanning パネルで：
 
 速度・加速度は既定で 10%（`joint_limits.yaml` の scaling 0.1）。
 
+## ハンドアイキャリブレーション（手先カメラの位置を求める）
+
+easy_handeye2（eye-in-hand、OpenCV の Tsai 法など）と aruco_opencv の ArUco グリッドボードで、
+フランジ（tool0）から D435 までの位置と向きを求め、URDF の仮の値と置き換えます。
+
+準備（1 回だけ）：
+
+```bash
+sudo apt install ros-humble-aruco-opencv ros-humble-realsense2-camera
+cd ~/projects/handover_ws/src
+git clone https://github.com/marcoesposito1988/easy_handeye2.git
+git -C easy_handeye2 checkout 29bd50a   # 確認した版（2026-08-20）
+cd ~/projects/handover_ws
+rosdep install --from-paths src --ignore-src -y
+colcon build --symlink-install
+python3 tools/make_board_pdf.py -o handeye_board.pdf   # ボードの PDF（src/tewatashi1 で実行）
+```
+
+ボードは A4 横に**等倍（100 %）**で印刷し、平らな板に貼って、マーカー 1 個の黒い正方形を定規で測ります。
+40 mm からずれていたら `tewatashi_bringup/config/handeye_board.yaml` の `marker_size` と `separation` を同じ比率で直します。
+
+当日：
+
+```bash
+ros2 launch tewatashi_bringup handeye_calibrate.launch.py \
+  use_fake_hardware:=false robot_ip:=<IP> kinematics_params_file:=<yaml>
+```
+
+腕はフリードライブ（手で動かす）で動かし、ボード全体が映る姿勢を 15〜20 個サンプルして計算・保存します。
+結果を URDF の引数に変換：
+
+```bash
+python3 ~/projects/handover_ws/src/tewatashi1/tools/handeye_to_urdf.py
+```
+
 ## 安全のための設定（どこに何があるか）
 
 | 対策 | 場所 | 出典・根拠 |

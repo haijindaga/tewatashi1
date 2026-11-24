@@ -1,0 +1,9 @@
+# aruco_opencv tracker for hand-eye calibration (wrist D435, camera_name calib_cam).
+/**:
+  ros__parameters:
+    cam_base_topic: /camera/calib_cam/color/image_raw
+    output_frame: ''          # poses in the image frame (calib_cam_color_optical_frame)
+    marker_dict: 4X4_50
+    marker_size: 0.040        # single markers; the board uses handeye_board.yaml
+    image_is_rectified: false # use camera_info from the driver
+    publish_tf: true          # -> TF calib_cam_color_optical_frame -> board_calib

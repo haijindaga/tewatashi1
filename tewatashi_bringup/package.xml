@@ -9,6 +9,10 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>aruco_opencv</exec_depend>
+  <!-- easy_handeye2 is not released for Humble: clone it into src (see README). -->
+  <exec_depend>easy_handeye2</exec_depend>
+  <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>rosbridge_server</exec_depend>
   <exec_depend>tewatashi_control</exec_depend>
   <exec_depend>tewatashi_moveit_config</exec_depend>
